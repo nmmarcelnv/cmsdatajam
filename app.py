@@ -43,6 +43,7 @@ colorscale = ["#f7fbff","#ebf3fb","#deebf7","#d2e3f3","#c6dbef","#b3d2e9","#9eca
               "#85bcdb","#6baed6","#57a0ce","#4292c6","#3082be","#2171b5","#1361a9",
               "#08519c","#0b4083","#08306b"]
 colorscale = ["#f7fbff", "#d4e9f7", "#afd6ef", "#8fbfe8", "#7197c5", "#58719f", "#3d4f7f", "#2a2a5a", "#151531"]
+endpts = list(np.linspace(1, 100, len(colorscale) - 1))
 colorscale = [
     'rgb(193, 193, 193)',
     'rgb(239,239,239)',
@@ -52,7 +53,7 @@ colorscale = [
     'rgb(65, 53, 132)',
     'rgb(63.0, 188.0, 115.0)',
 ]
-endpts = list(np.linspace(1, 100, len(colorscale) - 1))
+
 endpts = [0, 10, 20, 30, 40, 100]
 fips_values = df['fips'].tolist()
 ckd_values = df['ckd_value'].tolist()
@@ -88,12 +89,13 @@ def update_map(selected_state):
         fips=fips_values, values=ckd_values,
         binning_endpoints=endpts,
         colorscale=colorscale,
-        scope=[selected_state],
+        scope=['USA'],
         show_state_data=True,
         show_hover=True, centroid_marker={'opacity': 0},
         asp=2.9, title='CKD Prevalence',
         legend_title='% CKD'
     )
+    fig.layout.template = None
     return fig
 
 # Run flask app
