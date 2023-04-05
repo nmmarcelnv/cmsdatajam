@@ -2,9 +2,11 @@ import plotly.figure_factory as ff
 import pandas as pd
 import numpy as np
 import dash
-import dash_core_components as dcc
-from dash import html
 from dash.dependencies import Input, Output
+from dash import Dash, callback, html, dcc
+import dash_bootstrap_components as dbc
+import gunicorn #whilst your local machine's webserver doesn't need this, Heroku's linux webserver (i.e. dyno) does. I.e. This is your HTTP server
+from whitenoise import WhiteNoise   #for serving static files on Heroku
 
 dtypes = {
     'StateFIPS':str,
@@ -55,7 +57,15 @@ endpts = [0, 10, 20, 30, 40, 100]
 fips_values = df['fips'].tolist()
 ckd_values = df['ckd_value'].tolist()
 
-app = dash.Dash(__name__)
+# Instantiate dash app
+app = Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
+
+# Reference the underlying flask app (Used by gunicorn webserver in Heroku production deployment)
+server = app.server 
+
+# Enable Whitenoise for serving static files from Heroku (the /static folder is seen as root by Heroku) 
+server.wsgi_app = WhiteNoise(server.wsgi_app, root='static/') 
+
 app.layout = html.Div([
     dcc.Dropdown(
         id='state-dropdown',
@@ -86,5 +96,6 @@ def update_map(selected_state):
     )
     return fig
 
-if __name__ == '__main__':
-    app.run_server(debug=True)
+# Run flask app
+if __name__ == "__main__": 
+    app.run_server(debug=False, host='0.0.0.0', port=8050)
