@@ -15,7 +15,8 @@ dtypes = {
     'StateAbbr':str,
     'STATE_COUNTY':str
 }
-ckd = pd.read_excel('../data/Prevalence_of_CKD_by_US_State_and_County_by_County_2019.xlsx', sheet_name=1)
+ckd = pd.read_parquet('https://github.com/nmmarcelnv/cmsdatajam/blob/main/data/Prevalence_of_CKD_by_US_State_and_County_by_County_2019.parquet?raw=true')
+#ckd = pd.read_excel('../data/Prevalence_of_CKD_by_US_State_and_County_by_County_2019.xlsx', sheet_name=1)
 fips = pd.read_csv(
     'https://raw.githubusercontent.com/ChuckConnell/articles/master/fips2county.tsv',
     sep='\t',
