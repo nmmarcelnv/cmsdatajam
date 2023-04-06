@@ -42,9 +42,7 @@ ckd = ckd[['state','county','cases']]
 
 df = pd.merge(ckd, fips,on=['state','county'])
 
-colorscale = ["#f7fbff", "#d4e9f7", "#afd6ef", "#8fbfe8", "#7197c5", "#58719f", "#3d4f7f", "#2a2a5a", "#151531"]
-#endpts = list(np.linspace(1, 100, len(colorscale) - 1))
-endpts = [0, 10, 20, 30, 40, 100]
+
 
 # Instantiate dash app
 app = Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
@@ -54,20 +52,6 @@ server = app.server
 
 # Enable Whitenoise for serving static files from Heroku (the /static folder is seen as root by Heroku) 
 server.wsgi_app = WhiteNoise(server.wsgi_app, root='static/') 
-
-colorscale = [
-    'rgb(193, 193, 193)',
-    'rgb(239,239,239)',
-    'rgb(195, 196, 222)',
-    'rgb(144,148,194)',
-    'rgb(101,104,168)',
-    'rgb(65, 53, 132)',
-    'rgb(63.0, 188.0, 115.0)',
-    
-]
-endpts = [0, 10, 20, 30, 40, 100]
-fips_values = df['fips'].tolist()
-ckd_values = df['cases'].tolist()
 
 
 fig = px.choropleth(
