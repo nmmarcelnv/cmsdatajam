@@ -1,4 +1,5 @@
-import plotly.figure_factory as ff
+#import plotly.figure_factory as ff
+import plotly.express as px
 import pandas as pd
 import numpy as np
 import dash
@@ -7,6 +8,8 @@ from dash import Dash, callback, html, dcc
 import dash_bootstrap_components as dbc
 import gunicorn #whilst your local machine's webserver doesn't need this, Heroku's linux webserver (i.e. dyno) does. I.e. This is your HTTP server
 from whitenoise import WhiteNoise   #for serving static files on Heroku
+
+
 
 dtypes = {
     'StateFIPS':str,
@@ -32,31 +35,16 @@ fips['county'] = fips['county'].str.upper()
 fips['state'] = fips['state'].str.upper()
 
 
-ckd.columns=['ckd_value','county','state']
+ckd.columns=['cases','county','state']
 ckd['county'] = ckd['county'].str.upper()
 ckd['state'] = ckd['state'].str.upper()
-ckd = ckd[['state','county','ckd_value']]
+ckd = ckd[['state','county','cases']]
 
 df = pd.merge(ckd, fips,on=['state','county'])
 
-colorscale = ["#f7fbff","#ebf3fb","#deebf7","#d2e3f3","#c6dbef","#b3d2e9","#9ecae1",
-              "#85bcdb","#6baed6","#57a0ce","#4292c6","#3082be","#2171b5","#1361a9",
-              "#08519c","#0b4083","#08306b"]
 colorscale = ["#f7fbff", "#d4e9f7", "#afd6ef", "#8fbfe8", "#7197c5", "#58719f", "#3d4f7f", "#2a2a5a", "#151531"]
-endpts = list(np.linspace(1, 100, len(colorscale) - 1))
-colorscale = [
-    'rgb(193, 193, 193)',
-    'rgb(239,239,239)',
-    'rgb(195, 196, 222)',
-    'rgb(144,148,194)',
-    'rgb(101,104,168)',
-    'rgb(65, 53, 132)',
-    'rgb(63.0, 188.0, 115.0)',
-]
-
+#endpts = list(np.linspace(1, 100, len(colorscale) - 1))
 endpts = [0, 10, 20, 30, 40, 100]
-fips_values = df['fips'].tolist()
-ckd_values = df['ckd_value'].tolist()
 
 # Instantiate dash app
 app = Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
@@ -67,6 +55,38 @@ server = app.server
 # Enable Whitenoise for serving static files from Heroku (the /static folder is seen as root by Heroku) 
 server.wsgi_app = WhiteNoise(server.wsgi_app, root='static/') 
 
+colorscale = [
+    'rgb(193, 193, 193)',
+    'rgb(239,239,239)',
+    'rgb(195, 196, 222)',
+    'rgb(144,148,194)',
+    'rgb(101,104,168)',
+    'rgb(65, 53, 132)',
+    'rgb(63.0, 188.0, 115.0)',
+    
+]
+endpts = [0, 10, 20, 30, 40, 100]
+fips_values = df['fips'].tolist()
+ckd_values = df['cases'].tolist()
+
+
+fig = px.choropleth(
+    df, 
+    geojson="https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json",
+    locations="fips", 
+    color="cases",
+    scope="usa",
+    color_continuous_scale="Viridis",
+    range_color=[0,50],
+    labels={'cases':'CKD Prevalence (%)'}
+)
+
+app.layout = html.Div([
+    dcc.Graph(id='ckd-map', figure=fig)
+])
+
+
+"""
 app.layout = html.Div([
     dcc.Dropdown(
         id='state-dropdown',
@@ -83,10 +103,10 @@ app.layout = html.Div([
 )
 def update_map(selected_state):
     filtered_df = df[df['state'] == selected_state]
-    fips_values = filtered_df['fips'].tolist()
-    ckd_values = filtered_df['ckd_value'].tolist()
+    filtered_df['fips'] = filtered_df['fips'].astype(str).str.zfill(5)
     fig = ff.create_choropleth(
-        fips=fips_values, values=ckd_values,
+        fips=filtered_df['fips'].tolist(), 
+        values=filtered_df['cases'].tolist(),
         binning_endpoints=endpts,
         colorscale=colorscale,
         scope=['USA'],
@@ -96,7 +116,7 @@ def update_map(selected_state):
         legend_title='% CKD'
     )
     fig.layout.template = None
-    return fig
+"""    
 
 # Run flask app
 if __name__ == "__main__": 
