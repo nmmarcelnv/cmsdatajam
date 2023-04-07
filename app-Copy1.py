@@ -41,16 +41,16 @@ ckd = ckd[['state','county','cases']]
 
 df = pd.merge(ckd, fips,on=['state','county'])
 
-#df = pd.read_parquet('../data.parquet')
+df = pd.read_parquet('../data.parquet')
 # Instantiate dash app
 app = Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
 
+# Reference the underlying flask app (Used by gunicorn webserver in Heroku production deployment)
 server = app.server 
 
+# Enable Whitenoise for serving static files from Heroku (the /static folder is seen as root by Heroku) 
 server.wsgi_app = WhiteNoise(server.wsgi_app, root='static/') 
-
-cmin, cmax = 20, 40
-
+cmin, cmax = 20,40
 fig = px.choropleth(
     df, 
     geojson="https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json",
@@ -59,65 +59,15 @@ fig = px.choropleth(
     scope='usa',
     color_continuous_scale='YlOrRd',
     range_color=(cmin, cmax),
-    hover_data = {'state':True, 'county':True},
+    hover_data = {'state':True,'county':True},
     labels={'cases':'CKD Prevalence (%)'}
 )
 
-# Create layout with input components and the choropleth map
 app.layout = html.Div([
-    dbc.Row([
-        dbc.Col(
-            dcc.Input(
-                id='cmin-input',
-                type='number',
-                value=cmin,
-                min=0,
-                max=100,
-                step=1,
-                placeholder='Enter a min value'
-            ), 
-            width={'size': 2, 'offset': 1}
-        ),
-        dbc.Col(
-            dcc.Input(
-                id='cmax-input',
-                type='number',
-                value=cmax,
-                min=0,
-                max=100,
-                step=1,
-                placeholder='Enter a max value'
-            ), 
-            width={'size': 2, 'offset': 1}
-        ),
-    ], align='center', justify='center', className='mt-3 mb-3'),
-    dbc.Row([
-        dbc.Col(
-            dcc.Graph(id='ckd-map', figure=fig),
-            width={'size': 10, 'offset': 1}
-        )
-    ])
+    dcc.Graph(id='ckd-map', figure=fig)
 ])
 
-# Create a callback to update the range_color of the choropleth map based on the input values
-@app.callback(
-    Output('ckd-map', 'figure'),
-    Input('cmin-input', 'value'),
-    Input('cmax-input', 'value')
-)
-def update_map(cmin, cmax):
-    fig = px.choropleth(
-        df, 
-        geojson="https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json",
-        locations="fips", 
-        color='cases',
-        scope='usa',
-        color_continuous_scale='YlOrRd',
-        range_color=(cmin, cmax),
-        hover_data = {'state':True, 'county':True},
-        labels={'cases':'CKD Prevalence (%)'}
-    )
-    return fig
+
 
 # Run flask app
 if __name__ == "__main__": 
