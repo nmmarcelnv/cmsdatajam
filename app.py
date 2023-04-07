@@ -8,40 +8,9 @@ import dash_bootstrap_components as dbc
 import gunicorn #whilst your local machine's webserver doesn't need this, Heroku's linux webserver (i.e. dyno) does. I.e. This is your HTTP server
 from whitenoise import WhiteNoise   #for serving static files on Heroku
 
+#get the data from public repos
+df = pd.read_parquet('https://github.com/nmmarcelnv/cmsdatajam/blob/main/data/ckd_by_county.parquet?raw=true')
 
-
-dtypes = {
-    'StateFIPS':str,
-    'CountyFIPS_3':str,
-    'CountyName':str,
-    'StateName':str,
-    'CountyFIPS':str,
-    'StateAbbr':str,
-    'STATE_COUNTY':str
-}
-
-ckd = pd.read_csv('https://raw.githubusercontent.com/nmmarcelnv/cmsdatajam/main/data/Prevalence_of_CKD_by_US_State_and_County_by_County_2019.csv')
-fips = pd.read_csv(
-    'https://raw.githubusercontent.com/ChuckConnell/articles/master/fips2county.tsv',
-    sep='\t',
-    usecols=['CountyName','StateName','CountyFIPS','StateAbbr'],
-    dtype=dtypes
-)
-
-fips.columns=['county','state','fips', 'state3']
-fips = fips[['state','county','fips', 'state3']]
-fips['county'] = fips['county'].str.upper()
-fips['state'] = fips['state'].str.upper()
-
-
-ckd.columns=['cases','county','state']
-ckd['county'] = ckd['county'].str.upper()
-ckd['state'] = ckd['state'].str.upper()
-ckd = ckd[['state','county','cases']]
-
-df = pd.merge(ckd, fips,on=['state','county'])
-
-#df = pd.read_parquet('../data.parquet')
 # Instantiate dash app
 app = Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
 
