@@ -34,33 +34,47 @@ fig = px.choropleth(
 
 # Create layout with input components and the choropleth map
 app.layout = html.Div([
-    html.Label('Select CKD Prevalence Range:'),
-    dcc.RangeSlider(
-        id='c-range-slider',
-        min=0,
-        max=100,
-        step=1,
-        value=[cmin, cmax],
-        marks={
-            0: '0',
-            20: '20',
-            40: '40',
-            60: '60',
-            80: '80',
-            100: '100'
-        }
-    ),
-    dcc.Graph(id='ckd-map', figure=fig)
+    dbc.Row([
+        dbc.Col(
+            dcc.Input(
+                id='cmin-input',
+                type='number',
+                value=cmin,
+                min=0,
+                max=100,
+                step=1,
+                placeholder='Enter a min value'
+            ), 
+            width={'size': 2, 'offset': 1}
+        ),
+        dbc.Col(
+            dcc.Input(
+                id='cmax-input',
+                type='number',
+                value=cmax,
+                min=0,
+                max=100,
+                step=1,
+                placeholder='Enter a max value'
+            ), 
+            width={'size': 2, 'offset': 1}
+        ),
+    ], align='center', justify='center', className='mt-3 mb-3'),
+    dbc.Row([
+        dbc.Col(
+            dcc.Graph(id='ckd-map', figure=fig),
+            width={'size': 10, 'offset': 1}
+        )
+    ])
 ])
 
-# Create a callback to update the range_color of the choropleth map based on the slider value
+# Create a callback to update the range_color of the choropleth map based on the input values
 @app.callback(
     Output('ckd-map', 'figure'),
-    Input('c-range-slider', 'value')
+    Input('cmin-input', 'value'),
+    Input('cmax-input', 'value')
 )
-def update_map(range_values):
-    cmin = range_values[0]
-    cmax = range_values[1]
+def update_map(cmin, cmax):
     fig = px.choropleth(
         df, 
         geojson="https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json",
