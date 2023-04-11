@@ -25,7 +25,7 @@ server.wsgi_app = WhiteNoise(server.wsgi_app, root='static/')
 cmin, cmax = 20, 40
 # Create initial figures
 fig = px.choropleth(
-    df[df.Year==2019], 
+    df[df.Year==2023], 
     geojson="https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json",
     locations="FIPS", 
     color='CkdRate',
@@ -83,14 +83,6 @@ app.layout = html.Div(
                 html.Div(
                     className="input-panel",
                     children=[
-                        
-                        html.Label('Select Year:'),
-                        dcc.RadioItems(
-                            id='year-picker',
-                            options=[  2005,2010,2015,2019,2023], 
-                            value=2019, 
-                            inline=True
-                        ),
                         html.Label('Select CKD Prevalence Range:'),
                         dcc.RangeSlider(
                             id='c-range-slider',
@@ -100,6 +92,18 @@ app.layout = html.Div(
                             value=[cmin, cmax],
                             marks={x: str(x) for x in [0,20,40,60,80,10]}
                         ),
+                        html.Label('Select Year:'),
+                        dcc.RadioItems(
+                            id='year-picker',
+                            options=[2005,2010,2015,2019,2023], 
+                            value=2019, 
+                            inline=True
+                        ),
+                        html.Div([
+                            html.Button('Click to Make Predictions', id='btn-nclicks', n_clicks=0),
+                            html.Div(id='container-button-timestamp')
+                        ]),
+                        
                     ],
                     style={'width': '48%', 'display': 'inline-block'}
                 ),
@@ -111,7 +115,7 @@ app.layout = html.Div(
                         dcc.Graph(
                             id='ckd-map',
                             figure=fig,
-                            style={'width': '48%', 'display': 'inline-block'}
+                            style={'width': '48%', 'display': 'inline-block', 'float': 'left'}
                         ),
                         dcc.Graph(
                             id='poverty-map',
@@ -130,13 +134,17 @@ app.layout = html.Div(
 # Create a callback to update the range_color of the choropleth map based on the slider value
 @app.callback(
     Output('ckd-map', 'figure'),
-    [Input('year-picker', 'value'),
-     Input('c-range-slider', 'value')]
+    [
+     Input('c-range-slider', 'value'),
+     Input('year-picker', 'value'),
+     Input('btn-nclicks', 'n_clicks'),
+    ]
 )
-def update_map(year,ckdvalues):
+def update_map(ckdvalues, year, btn):
     cmin = ckdvalues[0]
     cmax = ckdvalues[1]
-    
+    if (year==2023)&(btn == 0):
+        year=19999999
     fig = px.choropleth(
         df[df.Year==year], 
         geojson="https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json",
