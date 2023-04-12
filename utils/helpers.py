@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def get_ckd_by_counties()
+def prepare_modeling_data()
 
     dtypes = {
         'StateFIPS':str,
@@ -14,30 +14,29 @@ def get_ckd_by_counties()
     }
     
     #original source : https://nccd.cdc.gov/ckd/detail.aspx?Qnum=Q705&Strat=County&Year=2018#refreshPosition
-    ckd = pd.read_csv('https://raw.githubusercontent.com/nmmarcelnv/cmsdatajam/main/data/Prevalence_of_CKD_by_US_State_and_County_by_County_2019.csv')
+    ckd = pd.read_parquet('https://github.com/nmmarcelnv/cmsdatajam/blob/main/data/Prevalence_of_CKD_by_US_State_and_County_by_County_2019.parquet?raw=true')
+    ckd.columns = ['CkdRate','County','State','Year']
+    ckd = ckd[['County','State','Year','CkdRate']]
+    ckd['County'] = ckd['County'].str.upper()
+    ckd['State'] = ckd['State'].str.upper()
     
     #https://towardsdatascience.com/the-ultimate-state-county-fips-tool-1e4c54dc9dff
+    
     fips = pd.read_csv(
-        'https://raw.githubusercontent.com/ChuckConnell/articles/master/fips2county.tsv',
-        sep='\t',
+        'https://raw.githubusercontent.com/ChuckConnell/articles/master/fips2county.tsv', 
+        sep='\t', 
         usecols=['CountyName','StateName','CountyFIPS','StateAbbr'],
         dtype=dtypes
     )
+    fips.columns=['County','State','FIPS', 'StateAbr']
+    fips = fips[['State','StateAbr','County','FIPS']]
+    fips['County'] = fips['County'].str.upper()
+    fips['State'] = fips['State'].str.upper()
 
-    fips.columns=['county','state','fips', 'state3']
-    fips = fips[['state','county','fips', 'state3']]
-    fips['county'] = fips['county'].str.upper()
-    fips['state'] = fips['state'].str.upper()
 
-
-    ckd.columns=['cases','county','state']
-    ckd['county'] = ckd['county'].str.upper()
-    ckd['state'] = ckd['state'].str.upper()
-    ckd = ckd[['state','county','cases']]
-    
-    #a copy is saved as parquet in the git repos: 
-    #https://github.com/nmmarcelnv/cmsdatajam/blob/main/data/ckd_by_county.parquet
-    df = pd.merge(ckd, fips,on=['state','county'])
+    unemp_df = pd.read_csv("https://raw.githubusercontent.com/plotly/datasets/master/fips-unemp-16.csv",dtype={"fips": str})
+    unemp_df['unemp'] = (unemp_df['unemp']/unemp_df['unemp'].max()) *(100)
+    unemp_df = unemp_df.rename(columns={'fips':'FIPS', 'unemp':'unEmpRate'})
     
     return df
 
