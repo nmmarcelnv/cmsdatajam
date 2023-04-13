@@ -10,7 +10,7 @@ import gunicorn #whilst your local machine's webserver doesn't need this, Heroku
 from whitenoise import WhiteNoise   #for serving static files on Heroku
 
 #get the data from public repos
-df = pd.read_parquet('https://github.com/nmmarcelnv/cmsdatajam/blob/main/data/DataProcessed.parquet?raw=true')
+df = pd.read_parquet('https://github.com/nmmarcelnv/cmsdatajam/blob/main/data/data_processed.parquet?raw=true')
 
 # Define options for the year dropdown
 year_options = [{'label': year, 'value': year} for year in sorted(df['Year'].unique())]
@@ -25,7 +25,7 @@ server.wsgi_app = WhiteNoise(server.wsgi_app, root='static/')
 cmin, cmax = 20, 40
 # Create initial figures
 fig = px.choropleth(
-    df[df.Year==2023], 
+    df[df.Year==2019], 
     geojson="https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json",
     locations="FIPS", 
     color='CkdRate',
@@ -95,7 +95,7 @@ app.layout = html.Div(
                         html.Label('Select Year:'),
                         dcc.RadioItems(
                             id='year-picker',
-                            options=[2005,2010,2015,2019,2023], 
+                            options=[2005,2010,2015,2019,2023,2024], 
                             value=2019, 
                             inline=True
                         ),
@@ -143,7 +143,7 @@ app.layout = html.Div(
 def update_map(ckdvalues, year, btn):
     cmin = ckdvalues[0]
     cmax = ckdvalues[1]
-    if (year==2023)&(btn == 0):
+    if (year>=2023)&(btn == 0):
         year=19999999
     fig = px.choropleth(
         df[df.Year==year], 
