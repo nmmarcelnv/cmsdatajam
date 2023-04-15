@@ -101,6 +101,9 @@ df = pd.read_parquet('https://github.com/nmmarcelnv/cmsdatajam/blob/main/data/Da
 # Build App
 app = Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
 
+server = app.server 
+server.wsgi_app = WhiteNoise(server.wsgi_app, root='static/') 
+
 app.layout = html.Div([
     dbc.Card(
         dbc.CardBody([
