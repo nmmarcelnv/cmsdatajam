@@ -1,14 +1,15 @@
 import plotly.express as px
 import pandas as pd
-import datetime as dt
-import numpy as np
-import dash
+#import datetime as dt
+#import numpy as np
+#import dash
 from dash.dependencies import Input, Output
-from dash import Dash, callback, html, dcc
+from dash import Dash, html, dcc
 import dash_bootstrap_components as dbc
 import gunicorn #whilst your local machine's webserver doesn't need this, Heroku's linux webserver (i.e. dyno) does. I.e. This is your HTTP server
 from whitenoise import WhiteNoise   #for serving static files on Heroku
 
+import helpers
 #get the data from public repos
 df = pd.read_parquet('https://github.com/nmmarcelnv/cmsdatajam/blob/main/data/DataProcessed.parquet?raw=true')
 
@@ -25,7 +26,7 @@ server.wsgi_app = WhiteNoise(server.wsgi_app, root='static/')
 cmin, cmax = 20, 40
 # Create initial figures
 fig = px.choropleth(
-    df[df.Year==2023], 
+    df[df.Year==2019], 
     geojson="https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json",
     locations="FIPS", 
     color='CkdRate',
@@ -38,7 +39,7 @@ fig = px.choropleth(
 )
 
 fig2 = px.choropleth(
-    df, 
+    df[df.Year==2019],  
     geojson="https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json",
     locations="FIPS", 
     color='unEmpRate',
@@ -54,7 +55,7 @@ fig2 = px.choropleth(
 # Create layout with input components and the choropleth map
 # Set the layout of the app
 app.layout = html.Div(
-    style={'backgroundColor': '#f2f2f2', 'border': '5px solid #555'},
+    style={'backgroundColor': '#f2f2f2', 'border': '1px solid #555'},
     children=[
         # Header section
         html.Div(
@@ -70,7 +71,10 @@ app.layout = html.Div(
                 ]),
                 html.Hr(),
                 html.P(
-            "According to Center of Disease Control (CDC) reports, more than 15% of US adults are estimated to have CKD and 9 in 10 adults with CKD are unaware of their condition. Also, African American and other minority population, mostly living in under-served communities are more that 4 times as likely as Whites to develop Kidney Failure."
+            "According to Center of Disease Control (CDC) reports, more than 15% of US adults \
+                are estimated to have CKD and 9 in 10 adults with CKD are unaware of their condition. \
+                    Also, African American and other minority population, mostly living in under-served c\
+                        ommunities are more that 4 times as likely as Whites to develop Kidney Failure."
                 ),
             ]
         ),
@@ -95,7 +99,7 @@ app.layout = html.Div(
                         html.Label('Select Year:'),
                         dcc.RadioItems(
                             id='year-picker',
-                            options=[2005,2010,2015,2019,2023], 
+                            options=[2005,2010,2015,2019,2024], 
                             value=2019, 
                             inline=True
                         ),
@@ -103,6 +107,18 @@ app.layout = html.Div(
                             html.Button('Click to Make Predictions', id='btn-nclicks', n_clicks=0),
                             html.Div(id='container-button-timestamp')
                         ]),
+                        dcc.Input(
+                            id="perc-senior", type="number", placeholder="Adjust % Senior",
+                            min=0, max=1, step=0.1, value=0
+                        ),
+                        dcc.Input(
+                            id="perc-lowi", type="number", placeholder="Adjust % Low Income",
+                            min=0, max=1, step=0.1, value=0
+                        ),
+                        dcc.Input(
+                            id="perc-snap", type="number", placeholder="Adjust % SNAP",
+                            min=0, max=10, step=1, value=0
+                        ),
                         
                     ],
                     style={'width': '48%', 'display': 'inline-block'}
@@ -138,15 +154,27 @@ app.layout = html.Div(
      Input('c-range-slider', 'value'),
      Input('year-picker', 'value'),
      Input('btn-nclicks', 'n_clicks'),
+     Input('perc-senior', 'value'),
+     Input('perc-lowi', 'value'),
+     Input('perc-snap', 'value'),
     ]
 )
-def update_map(ckdvalues, year, btn):
+def update_map(ckdvalues, year, btn, perc_senior, perc_lowi, perc_snap):
     cmin = ckdvalues[0]
     cmax = ckdvalues[1]
-    if (year==2023)&(btn == 0):
+    
+    data = df[df.Year==year].copy()
+    if (year==2024)&(btn == 0):
         year=19999999
+        data = df[df.Year==year].copy()
+    elif (year==2024)&(btn > 0):
+        
+        test_df = df[(df.Year>2015)].copy()
+        data = helpers.make_predictions(test_df,year,perc_senior,perc_lowi,perc_snap)
+       
+
     fig = px.choropleth(
-        df[df.Year==year], 
+        data, 
         geojson="https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json",
         locations="FIPS", 
         color='CkdRate',

@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def prepare_modeling_data()
+def prepare_modeling_data():
 
     dtypes = {
         'StateFIPS':str,
@@ -38,7 +38,6 @@ def prepare_modeling_data()
     unemp_df['unemp'] = (unemp_df['unemp']/unemp_df['unemp'].max()) *(100)
     unemp_df = unemp_df.rename(columns={'fips':'FIPS', 'unemp':'unEmpRate'})
     
-    return df
 
 
 def get_povertyrate_by_county():
@@ -82,7 +81,7 @@ def get_povertyrate_by_county():
     return dff
 
 
-def model(ckd_rate,unemp_rate,laseniors10,lalowi10,lasnap10,x1,x2,x3):
+def model(ckd_rate,unemp_rate,laseniors10,lalowi10,lasnap10,x1=0,x2=0,x3=0):
     
 
     """
@@ -95,7 +94,7 @@ def model(ckd_rate,unemp_rate,laseniors10,lalowi10,lasnap10,x1,x2,x3):
     future_ckd = (x1+0.4)*laseniors10 + 0.80*ckd_rate + 0.2*unemp_rate + x2*0.2*lalowi10 - x3*0.2*lasnap10
     return future_ckd
 
-def make_predictions(test_df, year, x1,x2,x3):
+def make_predictions(test_df, year, x1=0,x2=0,x3=0):
     
     """
     Make predictions on a set of counties for a given year 
