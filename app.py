@@ -198,7 +198,7 @@ app.layout = html.Div([
             html.Br(),
             dbc.Row([
                 dbc.Col([
-                    drawBar(object_id='ckd-bar-id')
+                    drawBar(object_id='ckd-scatter-id')
                 ], width=6),
                 dbc.Col([
                     drawMap(object_id='ckd-map-id3', metric='lalowi20')
@@ -217,9 +217,12 @@ app.layout = html.Div([
      Input('c-range-slider', 'value'),
      Input('year-picker', 'value'),
      Input('btn-nclicks', 'n_clicks'),
+     Input('perc-senior', 'value'),
+     Input('perc-lowi', 'value'),
+     Input('perc-snap', 'value'),
     ]
 )
-def update_map(ckdvalues,year,btn):
+def update_map(ckdvalues,year,btn,perc_senior,perc_lowi,perc_snap):
     cmin = ckdvalues[0]
     cmax = ckdvalues[1]
     
@@ -230,9 +233,9 @@ def update_map(ckdvalues,year,btn):
     elif (year==2024)&(btn>0):
         
         test_df = df[(df.Year>2015)].copy()
-        data = helpers.make_predictions(test_df,year)
+        data = helpers.make_predictions(test_df,perc_senior,perc_lowi,perc_snap)
        
-
+    
     fig = px.choropleth(
         data, 
         geojson="https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json",
@@ -250,15 +253,80 @@ def update_map(ckdvalues,year,btn):
 
 
 @app.callback(
+    Output('ckd-scatter-id', 'figure'),
+    [
+     Input('year-picker', 'value'),
+     Input('btn-nclicks', 'n_clicks'),
+     Input('perc-senior', 'value'),
+     Input('perc-lowi', 'value'),
+     Input('perc-snap', 'value'),
+    ]
+)
+def update_scatter(year,btn,perc_senior,perc_lowi,perc_snap):
+    
+    data = df[df.Year==year].copy()
+    if (year==2024)&(btn==0):
+        year=19999999
+        data = df[df.Year==year].copy()
+    elif (year==2024)&(btn>0):
+        
+        test_df = df[(df.Year>2015)].copy()
+        test_df['Year'] = year
+        data = helpers.make_predictions(test_df,perc_senior,perc_lowi,perc_snap)
+       
+
+    data = pd.concat([df, data])
+    actual = data.groupby(['Year'])[['CkdRate']].mean().reset_index()
+    
+    actual['Data Label'] = 'Actual'
+    pred = actual.copy()
+    
+    for year in [2017,2018,2019]:
+        pred.loc[pred.Year==year,'CkdRate'] =\
+            1.05*pred.loc[pred.Year.isin([year-2,year-1]),'CkdRate'].mean()
+    pred.loc[pred.Year==2024,'CkdRate'] = \
+        1.05*pred.loc[pred.Year.isin([2018,2019,2024]),'CkdRate'].mean()
+    pred['Data Label'] = 'Predicted'
+    actual_df = actual[actual.Year<2024]
+    pred_df = pred[pred.Year>=2017]
+    
+    if btn==0:
+        dff = actual_df
+    else:
+        dff = pd.concat([actual_df,pred_df])
+    
+    dff['CkdRate']=dff['CkdRate'].apply(lambda x:round(x,1))
+    dff = dff.rename(columns={'CkdRate':'Avg CKD Rate (%)'})
+    
+    fig = px.scatter(
+        dff, x='Year', 
+        y='Avg CKD Rate (%)', 
+        color='Data Label', 
+        size='Avg CKD Rate (%)',
+        text='Avg CKD Rate (%)',
+        title='Average CKD prevalence by Year'
+    )
+    fig.update(layout_showlegend=False)
+    fig.update_traces(textposition="top center")
+    return fig
+
+
+
+@app.callback(
     Output('metrics-map-id', 'figure'),
     [
      Input('metric-dropdown', 'value'),
+     Input('perc-senior', 'value'),
+     Input('perc-lowi', 'value'),
+     Input('perc-snap', 'value'),
     ]
 )
-def update_metric_map(metric):
-    
+def update_metric_map(metric,perc_senior,perc_lowi,perc_snap):
+    cmin, cmax=5,20
     data = df[df.Year==2019].copy()
-
+    data['laseniors10'] = data['laseniors10']*perc_senior
+    data['lalowi10'] = data['lalowi10']*perc_lowi
+    data['lasnap10'] = data['lasnap10']*perc_snap
     fig = px.choropleth(
         data, 
         geojson="https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json",

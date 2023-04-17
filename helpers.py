@@ -94,7 +94,7 @@ def model(ckd_rate,unemp_rate,laseniors10,lalowi10,lasnap10,x1=0,x2=0,x3=0):
     future_ckd = (x1+0.4)*laseniors10 + 0.80*ckd_rate + 0.2*unemp_rate + x2*0.2*lalowi10 - x3*0.2*lasnap10
     return future_ckd
 
-def make_predictions(test_df, year, x1=0,x2=0,x3=0):
+def make_predictions(test_df, x1=0,x2=0,x3=0):
     
     """
     Make predictions on a set of counties for a given year 
@@ -106,7 +106,7 @@ def make_predictions(test_df, year, x1=0,x2=0,x3=0):
     """
     
     
-    test_df['Year'] = year
+    #test_df['Year'] = year
     test_df = test_df.groupby(
         ['State','StateAbr','County','FIPS','FIPS3','Year']
     ).mean().reset_index()
