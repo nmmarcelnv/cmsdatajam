@@ -328,7 +328,7 @@ def update_scatter(year,btn,perc_senior,perc_lowi,perc_snap):
     ]
 )
 def update_metric_map(metric,perc_senior,perc_lowi,perc_snap):
-    cmin, cmax=0,100
+    cmin, cmax=5,40
     data = df[df.Year==2019].copy()
     data['laseniors10'] = data['laseniors10']*perc_senior
     data['lalowi10'] = data['lalowi10']*perc_lowi
