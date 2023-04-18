@@ -20,8 +20,14 @@ import helpers
 
 cmin, cmax = 20, 40
 dropdown_options=[
-    'unEmpRate','laseniors1','laseniors10','laseniors20','lalowi1',	'lalowi10',	'lalowi20',	'lasnap1','lasnap10','lasnap20']
-# Iris bar figure
+    'unEmpRate',
+    'laseniors1','laseniors10','laseniors20',
+    'lalowi1',	'lalowi10',	'lalowi20',
+    'lasnap1','lasnap10','lasnap20',
+    'TractWhite','TractBlack','TractAsian','TractNHOPI','TractAIAN','TractOMultir','TractSNAP'
+    
+]
+
 def drawMap(object_id, metric='CkdRate', xrange=(20, 40)):
     return  html.Div([
         dbc.Card(
