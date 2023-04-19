@@ -20,7 +20,7 @@ import helpers
 
 cmin, cmax = 20, 40
 dropdown_options=[
-    'unEmpRate',
+    'unEmpRate','PovertyRate',
     'laseniors1','laseniors10','laseniors20',
     'lalowi1',	'lalowi10',	'lalowi20',
     'lasnap1','lasnap10','lasnap20',
@@ -51,6 +51,37 @@ def drawMap(object_id, metric='CkdRate', xrange=(20, 40)):
         ),  
     ])
 
+def drawCKDIncidence(object_id):
+    return  html.Div([
+        dbc.Card(
+            dbc.CardBody([
+                dcc.Graph(
+                    id=object_id,
+                    figure = px.bar(
+                        ckd_inc_df, x="DASH Score", y="Odds ratio",
+                        title='CKD Incidence by DASH adherence score (Goolaleh et al. 2017 research)'
+                    ),
+                ) 
+            ])
+        ),  
+    ])
+
+
+def drawDiet(object_id):
+    return  html.Div([
+        dbc.Card(
+            dbc.CardBody([
+                dcc.Graph(
+                    id=object_id,
+                    figure = px.bar(
+                        diet_df, x="Percentage of population", y="Type of Diet", 
+                        orientation='h',
+                        title='Type of diet by % of US population'
+                    ),
+                ) 
+            ])
+        ),  
+    ])
 
 def drawBar(object_id):
     data = df.groupby(['Year'])[['CkdRate']].mean().reset_index()
@@ -103,6 +134,14 @@ def getIntro():
 
 #get the data from public repos
 df = pd.read_parquet('https://github.com/nmmarcelnv/cmsdatajam/blob/main/data/DataProcessed.parquet?raw=true')
+ckd_inc_df = pd.read_excel(
+    'https://github.com/nmmarcelnv/cmsdatajam/blob/main/reports/charts.xlsx?raw=true',
+    sheet_name='CKD Incidence Research'
+)
+diet_df = pd.read_excel(
+    'https://github.com/nmmarcelnv/cmsdatajam/blob/main/reports/charts.xlsx?raw=true',
+    sheet_name='Diet Followed'
+)
 
 # Build App
 app = Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
@@ -207,8 +246,11 @@ app.layout = html.Div([
                     drawBar(object_id='ckd-scatter-id')
                 ], width=6),
                 dbc.Col([
-                    drawMap(object_id='ckd-map-id3', metric='lalowi20')
-                ], width=6),
+                    drawCKDIncidence(object_id='ckd-inc-id')
+                ], width=3),
+                dbc.Col([
+                    drawDiet(object_id='diet-id') 
+                ], width=3),
             ], align='center'),      
         ]), color = 'dark'
     )
@@ -310,7 +352,7 @@ def update_scatter(year,btn,perc_senior,perc_lowi,perc_snap):
         color='Data Label', 
         size='Avg CKD Rate (%)',
         text='Avg CKD Rate (%)',
-        title='Average CKD prevalence by Year'
+        title='CKD prevalence in the US has been increase over the years'
     )
     fig.update(layout_showlegend=False)
     fig.update_traces(textposition="top center")
