@@ -18,6 +18,18 @@ import pandas as pd
 import helpers
 
 
+#get the data from public repos
+df = pd.read_parquet('https://github.com/nmmarcelnv/cmsdatajam/blob/main/data/DataProcessed.parquet?raw=true')
+ckd_inc_df = pd.read_excel(
+    'https://github.com/nmmarcelnv/cmsdatajam/blob/main/reports/charts.xlsx?raw=true',
+    sheet_name='CKD Incidence Research'
+)
+diet_df = pd.read_excel(
+    'https://github.com/nmmarcelnv/cmsdatajam/blob/main/reports/charts.xlsx?raw=true',
+    sheet_name='Diet Followed'
+)
+ckd_inc_df['Odds ratio'] = ckd_inc_df['Odds ratio'] * 100
+diet_df['Percentage of population'] = diet_df['Percentage of population'] * 100
 cmin, cmax = 20, 40
 dropdown_options=[
     'unEmpRate','PovertyRate',
@@ -73,10 +85,10 @@ def drawDiet(object_id):
             dbc.CardBody([
                 dcc.Graph(
                     id=object_id,
-                    figure = px.bar(
+                    figure = px.funnel(
                         diet_df, x="Percentage of population", y="Type of Diet", 
-                        orientation='h',
-                        title='Type of diet by % of US population'
+                        title='Type of diet by % of US population',
+                        #color=['blue' if x!='DASH diet' else 'red' for x in diet_df['Type of Diet']]
                     ),
                 ) 
             ])
@@ -132,16 +144,7 @@ def getIntro():
         ]
     )
 
-#get the data from public repos
-df = pd.read_parquet('https://github.com/nmmarcelnv/cmsdatajam/blob/main/data/DataProcessed.parquet?raw=true')
-ckd_inc_df = pd.read_excel(
-    'https://github.com/nmmarcelnv/cmsdatajam/blob/main/reports/charts.xlsx?raw=true',
-    sheet_name='CKD Incidence Research'
-)
-diet_df = pd.read_excel(
-    'https://github.com/nmmarcelnv/cmsdatajam/blob/main/reports/charts.xlsx?raw=true',
-    sheet_name='Diet Followed'
-)
+
 
 # Build App
 app = Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
@@ -244,14 +247,21 @@ app.layout = html.Div([
             dbc.Row([
                 dbc.Col([
                     drawBar(object_id='ckd-scatter-id')
-                ], width=6),
+                ], width=12),
+            ], align='center'),   
+            
+            #Another row
+            html.Br(),
+            dbc.Row([
                 dbc.Col([
                     drawCKDIncidence(object_id='ckd-inc-id')
-                ], width=3),
+                ], width=6),
                 dbc.Col([
                     drawDiet(object_id='diet-id') 
-                ], width=3),
-            ], align='center'),      
+                ], width=6),
+            ], align='center'),  
+            
+            
         ]), color = 'dark'
     )
 ])
