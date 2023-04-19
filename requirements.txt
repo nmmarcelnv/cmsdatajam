@@ -7,3 +7,4 @@ dash-bootstrap-components==1.1.0
 whitenoise==5.2.0
 fastparquet==0.8.3
 pyarrow==11.0.0
+openpyxl==3.1.2
