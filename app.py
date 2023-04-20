@@ -31,7 +31,8 @@ diet_df = pd.read_excel(
 ckd_inc_df['Odds ratio'] = ckd_inc_df['Odds ratio'] * 100
 diet_df['Percentage of population'] = diet_df['Percentage of population'] * 100
 cmin, cmax = 20, 40
-dropdown_options=[
+fips_options = df['FIPS']
+metrics_options=[
     'unEmpRate','PovertyRate',
     'laseniors1','laseniors10','laseniors20',
     'lalowi1',	'lalowi10',	'lalowi20',
@@ -197,6 +198,65 @@ app.layout = html.Div([
                     
                 ], width=2),
                 
+                #######
+                dbc.Col([
+                    
+                    html.Label('Select Percentage Range:'),
+                    dcc.RangeSlider(
+                        id='metric-range-slider',
+                        min=0,
+                        max=100,
+                        step=1,
+                        value=[cmin, cmax],
+                        marks={x: str(x) for x in [0,20,40,60,80,100]}
+                    ),
+                    
+                ], width=2),
+                
+                ######
+                dbc.Col([
+                    html.Label('Select FIPS'),
+                    dcc.Input(
+                        id="fips-id", 
+                        type="text", 
+                        placeholder="00000", 
+                        value='00000',
+                        #style={'marginRight':'10px'}
+                    ),
+                        
+                ], width=2),
+                
+                dbc.Col([
+                    html.Label('Select Metric'),
+                    
+                    dcc.Dropdown(
+                        options=metrics_options, 
+                        value='unEmpRate', 
+                        id='metric-dropdown'
+                    ),
+                        
+                ], width=2),
+                
+            ], align='center'), 
+            
+            #Another row
+            html.Br(),
+            dbc.Row([
+                dbc.Col([
+                    drawMap(object_id='ckd-map-id')
+                ], width=6),
+                dbc.Col([
+                    drawMap(object_id='metrics-map-id', metric='unEmpRate') 
+                ], width=6),
+            ], align='center'), 
+            
+            #Another row
+            html.Br(),
+            dbc.Row([
+                dbc.Col([
+                    drawBar(object_id='ckd-scatter-id')
+                ], width=9),
+                
                 dbc.Col([
                     html.Label('Adjust % Senior'),
                     dcc.Input(
@@ -219,35 +279,6 @@ app.layout = html.Div([
                     ),
                 ], width=1),
                 
-                dbc.Col([
-                    html.Label('Select Metric'),
-                    
-                    dcc.Dropdown(
-                        options=dropdown_options, 
-                        value='unEmpRate', 
-                        id='metric-dropdown'
-                    ),
-                        
-                ], width=3),
-            ], align='center'), 
-            
-            #Another row
-            html.Br(),
-            dbc.Row([
-                dbc.Col([
-                    drawMap(object_id='ckd-map-id')
-                ], width=6),
-                dbc.Col([
-                    drawMap(object_id='metrics-map-id', metric='unEmpRate') 
-                ], width=6),
-            ], align='center'), 
-            
-            #Another row
-            html.Br(),
-            dbc.Row([
-                dbc.Col([
-                    drawBar(object_id='ckd-scatter-id')
-                ], width=12),
             ], align='center'),   
             
             #Another row
@@ -377,11 +408,17 @@ def update_scatter(year,btn,perc_senior,perc_lowi,perc_snap):
      Input('perc-senior', 'value'),
      Input('perc-lowi', 'value'),
      Input('perc-snap', 'value'),
+     Input('fips-id', 'value'),
+     Input('metric-range-slider','value'),
     ]
 )
-def update_metric_map(metric,perc_senior,perc_lowi,perc_snap):
-    cmin, cmax=5,40
-    data = df[df.Year==2019].copy()
+def update_metric_map(metric,perc_senior,perc_lowi,perc_snap,fips_id,metric_range):
+    cmin, cmax = metric_range[0], metric_range[1]
+    #data = df[df.Year==2019].copy()
+    if fips_id!='00000':
+        data = df[(df.Year==2019)&(df.FIPS==fips_id)].copy()
+    else:
+        data = df[df.Year==2019].copy()
     data['laseniors10'] = data['laseniors10']*perc_senior
     data['lalowi10'] = data['lalowi10']*perc_lowi
     data['lasnap10'] = data['lasnap10']*perc_snap
