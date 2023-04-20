@@ -17,18 +17,26 @@ from whitenoise import WhiteNoise   #for serving static files on Heroku
 import pandas as pd
 import helpers
 
+from urllib.request import urlopen
+import json
+with urlopen(
+        'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json') as response:
+    geojson_counties = json.load(response)
+
 
 #get the data from public repos
 df = pd.read_parquet('https://github.com/nmmarcelnv/cmsdatajam/blob/main/data/DataProcessed.parquet?raw=true')
 ckd_inc_df = pd.read_excel(
     'https://github.com/nmmarcelnv/cmsdatajam/blob/main/reports/charts.xlsx?raw=true',
-    sheet_name='CKD Incidence Research'
-)
+    sheet_name='CKD Incidence Research',
+    usecols=['DASH Score', 'Odds ratio']
+).dropna()
 diet_df = pd.read_excel(
     'https://github.com/nmmarcelnv/cmsdatajam/blob/main/reports/charts.xlsx?raw=true',
     sheet_name='Diet Followed'
-)
-ckd_inc_df['Odds ratio'] = ckd_inc_df['Odds ratio'] * 100
+).sort_values(by=['Percentage of population'])
+#ckd_inc_df['Odds ratio'] = ckd_inc_df['Odds ratio'] * 100
+ckd_inc_df = ckd_inc_df[ckd_inc_df['DASH Score']!=1]
 diet_df['Percentage of population'] = diet_df['Percentage of population'] * 100
 cmin, cmax = 20, 40
 fips_options = df['FIPS']
@@ -41,6 +49,70 @@ metrics_options=[
     
 ]
 
+
+def get_correlation(df, year=2019):
+    
+    import scipy
+    def assign_distance(x):
+    
+        if '20' in x[-2:]: return '20 Miles'
+        if '10' in x[-2:]: return '10 Miles'
+        if ('1' in x[-2:])&(any(c.isalpha() for c in x[-2:])): return '1 Miles'
+        if 'lf' in x[-2:]: return '0.5 Miles'
+        return x
+
+    def assign_names(x):
+
+        if 'lalow' in x: return 'Low Income Pop'
+        if 'laseniors' in x: return 'Senior Pop'
+        if 'lasnap' in x: return 'SNAP Pop'
+        return x
+
+    
+    dff = df[(df.Year==2019)]
+    cols = [
+        'CkdRate','unEmpRate', 'PovertyRate', 
+        'lalowihalf','lalowi1','lalowi10', 'lalowi20', 
+        'laseniorshalf','laseniors1', 'laseniors10', 'laseniors20',
+        'lasnaphalf', 'lasnap1', 'lasnap10','lasnap20', 
+        'TractWhite', 'TractBlack',
+        'TractAsian', 'TractNHOPI', 'TractAIAN', 'TractOMultir', 'TractSNAP']
+    
+    dd = pd.DataFrame()
+    feats = []
+    corrs = []
+    p_values = []
+    feat='CkdRate'
+    for feati in cols:
+        #if feati != feat:
+            feats.append(feati)
+            corr, p_value = scipy.stats.spearmanr(dff[feat], dff[feati])
+            corrs.append(corr)
+            p_values.append(p_value)
+
+    dd['Feature'] = feats
+    dd['Correlation Coeff with CKD'] = corrs
+    dd['p_value'] = [round(x, 4) for x in p_values]
+    
+    dd['Distance from supermarket'] = dd['Feature'].apply(assign_distance)
+    dd['Population Group'] = dd['Feature'].apply(assign_names)
+    dd = dd.sort_values(
+        by=['Population Group','Distance from supermarket'])
+    dd = dd[['Population Group','Distance from supermarket','Correlation Coeff with CKD', 'p_value']]
+
+    cols1 = ['CkdRate','unEmpRate','PovertyRate','TractWhite', 'TractBlack',
+       'TractAsian', 'TractNHOPI', 'TractAIAN', 'TractOMultir', 'TractSNAP']
+    
+    d1 = dd[~dd['Population Group'].isin(cols1)]
+    d2 = dd[dd['Population Group'].isin(cols1)]
+    d2 = d2.rename(columns={'Distance from supermarket':'Social Determinant'})
+    d2['Social Determinant']=d2['Social Determinant'].apply(lambda x: x.replace('Tract', 'Proportion of '))
+
+    return d1, d2
+    
+
+corr_df1, corr_df2 = get_correlation(df, year=2019)
+
 def drawMap(object_id, metric='CkdRate', xrange=(20, 40)):
     return  html.Div([
         dbc.Card(
@@ -49,7 +121,7 @@ def drawMap(object_id, metric='CkdRate', xrange=(20, 40)):
                     id=object_id,
                     figure = px.choropleth(
                         df[df.Year==2019], 
-                        geojson="https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json",
+                        geojson=geojson_counties,
                         locations="FIPS", 
                         color=metric,
                         scope='usa',
@@ -70,8 +142,8 @@ def drawCKDIncidence(object_id):
             dbc.CardBody([
                 dcc.Graph(
                     id=object_id,
-                    figure = px.bar(
-                        ckd_inc_df, x="DASH Score", y="Odds ratio",
+                    figure = px.scatter(
+                        ckd_inc_df, x="DASH Score", y="Odds ratio",size='Odds ratio',
                         title='CKD Incidence by DASH adherence score (Goolaleh et al. 2017 research)'
                     ),
                 ) 
@@ -86,10 +158,11 @@ def drawDiet(object_id):
             dbc.CardBody([
                 dcc.Graph(
                     id=object_id,
-                    figure = px.funnel(
+                    figure = px.bar(
                         diet_df, x="Percentage of population", y="Type of Diet", 
                         title='Type of diet by % of US population',
                         #color=['blue' if x!='DASH diet' else 'red' for x in diet_df['Type of Diet']]
+                        orientation='h'
                     ),
                 ) 
             ])
@@ -104,6 +177,49 @@ def drawBar(object_id):
                 dcc.Graph(
                     id=object_id,
                     figure = px.bar(data, x="Year", y="CkdRate"),
+                ) 
+            ])
+        ),  
+    ])
+
+def drawCorr1(object_id):
+    
+    return  html.Div([
+        dbc.Card(
+            dbc.CardBody([
+                dcc.Graph(
+                    id=object_id,
+                    figure = px.bar(
+                        corr_df1, 
+                        x="Distance from supermarket", 
+                        y="Correlation Coeff with CKD",
+                        color='Population Group', 
+                        barmode='group',
+                        hover_data = {'p_value':True, },
+                        title='Correlation between CKD prevalence and access to healthy food'
+                    )
+                ) 
+            ])
+        ),  
+    ])
+
+def drawCorr2(object_id):
+    
+    return  html.Div([
+        dbc.Card(
+            dbc.CardBody([
+                dcc.Graph(
+                    id=object_id,
+                    figure = px.bar(
+                        corr_df2, 
+                        x="Social Determinant", 
+                        y="Correlation Coeff with CKD",
+                        color=['blue' if x>0 else 'red' for x in corr_df2['Correlation Coeff with CKD']],
+                        barmode='group',
+                        hover_data = {'p_value':True, },
+                        title='Correlation between CKD prevalence and various social determinants'
+                    ).update(layout_showlegend=False)
+                    
                 ) 
             ])
         ),  
@@ -142,9 +258,81 @@ def getIntro():
                 Also, African American and other minority population, mostly living in under-served c\
                     ommunities are more that 4 times as likely as Whites to develop Kidney Failure."
             ),
+            
         ]
     )
 
+
+
+def section_correlation():
+    
+    return html.Div(
+        className="header",
+        children=[
+            html.Hr(),
+            html.H1([
+                html.Span(
+                    "Correlation Between CKD Prevalence and various social determinants", 
+                    style={"color": "green", "font-weight": "bold"}
+                ),
+            ]),
+            html.H5([
+                html.Span("NOTE: ", style={"color": "white", "font-weight": "bold"}),
+                " Correlation does not imply causation",
+            ]),
+            html.Hr(),
+        
+            html.Label([
+                "We've computed the Spearman correlation to assess the relationship between variables. ",
+                 html.A('The Spearman correlation ', href='https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient'), 
+                 "is a statistical tool used to measure the strength and direction of the relationship \
+                     between two variables. The larger the absolute value, the stronger the relationship between the variables.\
+                     A positive value close to +1 indicates that one variable may likely increase if we increase the other, while \
+                     a negative value close to -1 means one variable might decrease if we increase the other. \
+                     For example, the data shows a positive correlation between CKD prevalence and poverty rate. \
+                    This means that areas with higher poverty rates are also more likely to have a higher prevalence of CKD. \
+                    Spearman's correlation can help us better understand the relationship between CKD prevalence and\
+                        other social determinants of health ", 
+            ])
+            
+        ]
+    )
+     
+
+def section_food_survey():
+    
+    return html.Div(
+        className="header",
+        children=[
+            html.Hr(),
+            html.H1([
+                html.Span(
+                    "Using Research Studies on Food and Health to Inform Decisions", 
+                    style={"color": "green", "font-weight": "bold"}
+                ),
+            ]),
+            html.H5([
+                html.Span(
+                    "Food Insecurity, Food Deserts and Food Swamps are not good for Kidney Health ", 
+                    style={"color": "white", "font-weight": "bold"}
+                ),
+            ]),
+            html.Hr(),
+        
+            html.Label([
+                "It is known that healthy diet can reduce the risk of conditions such as diabetes and hypertension, \
+                which are the primary risk factors for CKD. In particular, there is ",
+                html.A('The data ', href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6602537/'), 
+                "shows that adherence to the ", 
+                html.A('Dietary Approach to Stop Hypertension (DASH)', 
+                       href='https://www.hsph.harvard.edu/nutritionsource/healthy-weight/diet-reviews/dash-diet/'), 
+                " reduced the risk of CKD by up to 10%. The problem however is that adherence to healthy eating habits \
+                such as the DASH diet is particularly low among black and other minority groups, \
+                which unfortunately have the highest prevalence of CKD in the US."
+            ])
+            
+        ]
+    )
 
 
 # Build App
@@ -245,6 +433,7 @@ app.layout = html.Div([
                 dbc.Col([
                     drawMap(object_id='ckd-map-id')
                 ], width=6),
+                
                 dbc.Col([
                     drawMap(object_id='metrics-map-id', metric='unEmpRate') 
                 ], width=6),
@@ -282,6 +471,12 @@ app.layout = html.Div([
             ], align='center'),   
             
             #Another row
+            dbc.Row([
+                dbc.Col([
+                    section_food_survey(),
+                ], width=12),
+                
+            ], align='center'), 
             html.Br(),
             dbc.Row([
                 dbc.Col([
@@ -292,6 +487,23 @@ app.layout = html.Div([
                 ], width=6),
             ], align='center'),  
             
+            #Another row
+            dbc.Row([
+                dbc.Col([
+                    section_correlation(),
+                ], width=12),
+                
+            ], align='center'), 
+            html.Br(),
+            dbc.Row([
+                dbc.Col([
+                    drawCorr1(object_id='corr1-id') 
+                ], width=6),
+                
+                dbc.Col([
+                    drawCorr2(object_id='corr2-id') 
+                ], width=6),
+            ], align='center'),
             
         ]), color = 'dark'
     )
@@ -327,7 +539,7 @@ def update_map(ckdvalues,year,btn,perc_senior,perc_lowi,perc_snap):
     
     fig = px.choropleth(
         data, 
-        geojson="https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json",
+        geojson=geojson_counties,
         locations="FIPS", 
         color='CkdRate',
         scope='usa',
@@ -424,7 +636,7 @@ def update_metric_map(metric,perc_senior,perc_lowi,perc_snap,fips_id,metric_rang
     data['lasnap10'] = data['lasnap10']*perc_snap
     fig = px.choropleth(
         data, 
-        geojson="https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json",
+        geojson=geojson_counties,
         locations="FIPS", 
         color=metric,
         scope='usa',
