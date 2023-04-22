@@ -1,4 +1,7 @@
 # Byte-compiled / optimized / DLL files
+
+data/faps_individual_puf.csv
+data/faps_fahnutrients.csv
 __pycache__/
 *.py[cod]
 *$py.class

@@ -38,6 +38,14 @@ diet_df = pd.read_excel(
 #ckd_inc_df['Odds ratio'] = ckd_inc_df['Odds ratio'] * 100
 ckd_inc_df = ckd_inc_df[ckd_inc_df['DASH Score']!=1]
 diet_df['Percentage of population'] = diet_df['Percentage of population'] * 100
+
+usecols=['Food Category','Percentage of Total Spend']
+foods = pd.read_excel(
+    'https://github.com/nmmarcelnv/cmsdatajam/blob/main/reports/charts.xlsx?raw=true',
+    sheet_name='What SNAP People Buy', usecols=usecols)
+foods = foods[foods['Food Category']!='Total Summary Category Expenditures']
+foods['Percentage of Total Spend'] = foods['Percentage of Total Spend'] * 100
+
 cmin, cmax = 20, 40
 fips_options = df['FIPS']
 metrics_options=[
@@ -63,9 +71,9 @@ def get_correlation(df, year=2019):
 
     def assign_names(x):
 
-        if 'lalow' in x: return 'Low Income Pop'
-        if 'laseniors' in x: return 'Senior Pop'
-        if 'lasnap' in x: return 'SNAP Pop'
+        if 'lalow' in x: return 'Low Income'
+        if 'laseniors' in x: return 'Senior'
+        if 'lasnap' in x: return 'SNAP'
         return x
 
     
@@ -195,6 +203,7 @@ def drawCorr1(object_id):
                         y="Correlation Coeff with CKD",
                         color='Population Group', 
                         barmode='group',
+                        #width=800, height=400,
                         hover_data = {'p_value':True, },
                         title='Correlation between CKD prevalence and access to healthy food'
                     )
@@ -243,7 +252,7 @@ def getIntro():
     return html.Div(
         className="header",
         children=[
-            html.H1("2023 Health Equity Datajam: A Practical Guide Reduce Chronic Kidney Disease (CKD)"),
+            html.H1("Healthy Food for Healthy Kidney: A Practical Apporach to Reduce Chronic Kidney Disease (CKD)"),
             html.H5([
                 "Contributors: ",
                 html.Span("Marcel Nguemaha", style={"color": "white", "font-weight": "bold"}),
@@ -261,7 +270,61 @@ def getIntro():
             
         ]
     )
+     
 
+def section_food_survey():
+    
+    return html.Div(
+        className="header",
+        children=[
+            html.Hr(),
+            html.H1([
+                html.Span(
+                    "Breaking down barriers to healthy eating: Addressing Disparities in CKD through targeted nutrition strategies", 
+                    style={"color": "green", "font-weight": "bold"}
+                ),
+            ]),
+            html.H5([
+                html.Span(
+                    "Food Insecurity, Food Deserts and Food Swamps are not good for Kidney Health\
+                    a community customized DASH program can help but adherence is low among high-risk populations", 
+                    style={"color": "white", "font-weight": "bold"}
+                ),
+            ]),
+            html.Hr(),
+        
+            html.Label([
+                "It is known that healthy diet can reduce the risk of conditions such as diabetes and hypertension, \
+                which are the primary risk factors for CKD. In particular, ",
+                html.A('the data ', href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6602537/'), 
+                "shows that adherence to the ", 
+                html.A('Dietary Approach to Stop Hypertension (DASH)', 
+                       href='https://www.hsph.harvard.edu/nutritionsource/healthy-weight/diet-reviews/dash-diet/'), 
+                " can reduce the risk of CKD by up to 10%. The problem however is that adherence to healthy eating habits \
+                such as the DASH diet is particularly low among black and other minority groups, \
+                which unfortunately have the highest prevalence of CKD in the US. This means that the traditional \
+                one-fit-all DASH approach is not designed to address the unique challenges that specific communities face.\
+                Indeed, sample responses from black individuals with stage 3-4 CKD ellucidate this point: " ,
+                html.A('(Tyson et al. Journal of Renal Nutrition, Vol 33, Issue 1, p59-68, 2023)', 
+                       href='https://www.sciencedirect.com/science/article/pii/S1051227622000887'), 
+                html.Br(),
+                html.Span(
+                    "Yeah because the stores that I shop, they have all of this but I would still say the expense. \
+                    I’m on disability so I make a certain amount of money and after paying the car note and some \
+                    other stuff and then for my food stamps I only get like $19 a month so that doesn’t go very far." , 
+                    style={"color": "yellow", 'font-style': 'italic', 'text-align': 'center', 'margin': '0 auto', 'display': 'block', 'width': '80%'}
+                ),
+                
+                html.Br(),
+                html.Span(
+                    "The way the instructions are they don’t make it as simple for people that doesn’t have experience in cooking." , 
+                    style={"color": "yellow", 'font-style': 'italic', 'text-align': 'center', 'margin': '0 auto', 'display': 'block', 'width': '80%'}
+                ),
+                
+            ])
+            
+        ]
+    )
 
 
 def section_correlation():
@@ -280,10 +343,15 @@ def section_correlation():
                 html.Span("NOTE: ", style={"color": "white", "font-weight": "bold"}),
                 " Correlation does not imply causation",
             ]),
+            html.H5([
+                html.Span("Highlight: ", style={"color": "white", "font-weight": "bold"}),
+                " Though SNAP benefits might help with hunger, people \
+                are using their SNAP money to purchase items that aggravage the risk of developing CKD",
+            ]),
             html.Hr(),
         
             html.Label([
-                "We've computed the Spearman correlation to assess the relationship between variables. ",
+                "We've computed the Spearman correlation to assess the relationship between the prevalence of CKD and other social determinants of health. ",
                  html.A('The Spearman correlation ', href='https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient'), 
                  "is a statistical tool used to measure the strength and direction of the relationship \
                      between two variables. The larger the absolute value, the stronger the relationship between the variables.\
@@ -291,15 +359,17 @@ def section_correlation():
                      a negative value close to -1 means one variable might decrease if we increase the other. \
                      For example, the data shows a positive correlation between CKD prevalence and poverty rate. \
                     This means that areas with higher poverty rates are also more likely to have a higher prevalence of CKD. \
-                    Spearman's correlation can help us better understand the relationship between CKD prevalence and\
-                        other social determinants of health ", 
+                    Interestingly, we found that for populations living closer to a supermarket, receiving SNAP benefit has a \
+                    positive correlation with the prevalence of CKD whereas for those living further away from a supermarket, \
+                    receiving SNAP benefit correlates negatively with CKD. This suggests that people living closer to a supermarket \
+                    may be using their SNAP benefits to purchase items that aggravage the risk of developing CKD. "
             ])
             
         ]
     )
-     
+        
 
-def section_food_survey():
+def section_resources():
     
     return html.Div(
         className="header",
@@ -307,34 +377,243 @@ def section_food_survey():
             html.Hr(),
             html.H1([
                 html.Span(
-                    "Using Research Studies on Food and Health to Inform Decisions", 
+                    "US Kidney Health Atlas: A one-stop shop for various Kidney Health resources", 
                     style={"color": "green", "font-weight": "bold"}
                 ),
             ]),
+            
             html.H5([
                 html.Span(
-                    "Food Insecurity, Food Deserts and Food Swamps are not good for Kidney Health ", 
+                    "Patients, caregiver, providers, and researchers have a hard time navigating through the \
+                    vast amount of information scattered all over the internet.", 
                     style={"color": "white", "font-weight": "bold"}
                 ),
             ]),
             html.Hr(),
         
             html.Label([
-                "It is known that healthy diet can reduce the risk of conditions such as diabetes and hypertension, \
-                which are the primary risk factors for CKD. In particular, there is ",
-                html.A('The data ', href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6602537/'), 
-                "shows that adherence to the ", 
-                html.A('Dietary Approach to Stop Hypertension (DASH)', 
-                       href='https://www.hsph.harvard.edu/nutritionsource/healthy-weight/diet-reviews/dash-diet/'), 
-                " reduced the risk of CKD by up to 10%. The problem however is that adherence to healthy eating habits \
-                such as the DASH diet is particularly low among black and other minority groups, \
-                which unfortunately have the highest prevalence of CKD in the US."
-            ])
+                "",
+                 html.A(
+                     'The Center of Disease Control and Prevention (CDC) Chronic Kidney Disease Initiative :', 
+                     href='https://www.cdc.gov/kidneydisease/publications-resources/ckd-national-facts.html',
+                     target='_blank'), 
+                 "", " Go here for general information about CKD statistics in the US as well as basics health tips"
+            ]),
+            
+            html.Label([
+                "",
+                 html.A(
+                     'Organ Donation and Transplantation :', 
+                     href='https://data.hrsa.gov/topics/health-systems/organ-donation',
+                     target='_blank'), 
+                 "", " Information about Organ donation and transplant for various Organs, including Kidney. You can see approximate\
+                     wait time by gender, race, age etc ... "
+            ]),
+                
+            html.Label([
+                "",
+                 html.A(
+                     'Dialysis Units in the USA :', 
+                     href='hhttps://www.dialysisunits.com',
+                     target='_blank'), 
+                 "", " This is a great tool for CKD patients. You can find dialysis unit in your regions, including home dialysis centers "
+            ]),
+                
+            html.Label([
+                "",
+                 html.A(
+                     'The National Institute of Diabetes and Digestive and Kidney Diseases :', 
+                     href='https://www.niddk.nih.gov/about-niddk/strategic-plans-reports/usrds/data-query-tools/esrd-incident-count',
+                     target='_blank'), 
+                 "", " This tool can be used to display counts of incident ESRD patients. \
+                     The specific population of interest and the display format can be configured by the user. \
+                         Specific instructions for use are also provided. This is great for data analysis and modeling"
+            ]),
+                
+            html.Label([
+                "",
+                 html.A(
+                     'Mapping Medicare Disparities by Population :', 
+                     href='https://data.cms.gov/tools/mapping-medicare-disparities-by-population',
+                     target='_blank'), 
+                 "", " provides a user friendly way to explore and better understand disparities in chronic diseases."
+            ]),
+            
+            html.Label([
+                "",
+                 html.A(
+                     'CDC Social Determinants of Health :', 
+                     href='https://gis.cdc.gov/grasp/diabetes/diabetesatlas-sdoh.html',
+                     target='_blank'), 
+                 "", " Diabetes Atlas, shows percentage of diagnosed diabetes by US state."
+            ]),
+            
+            html.Label([
+                "",
+                 html.A(
+                     'Food Access Atlas :', 
+                     href='https://www.ers.usda.gov/data-products/food-access-research-atlas/download-the-data/',
+                     target='_blank'), 
+                 "", " Provides data on food scarcity across the US by county. Includes information such as \
+                     poverty rate, percent of population leaving a certain distance from supermarket, \
+                         percent of people receiving SNAP benefits etc ..."
+            ]),
+                
+            html.Label([
+                "",
+                 html.A(
+                     'Kidney Disease Surveillance System :', 
+                     href='https://nccd.cdc.gov/ckd/detail.aspx?Qnum=Q705&Strat=County&Year=2018#refreshPosition',
+                     target='_blank'), 
+                 "", " Shows the distribution of diagnosed chronic kidney disease (CKD) among individuals aged 65 \
+                     and older varies by US region. Great starting point for data analysis and modeling"
+            ]),
+                
+            html.Label([
+                "",
+                 html.A(
+                     'The National Kidney Foundation: ', 
+                     href='https://www.kidney.org/treatment-support',
+                     target='_blank'), 
+                 "", " This is a great resource for people suffering with CKD. They even have a free Information helpline \
+                     where patient can call to get support, ask questions to a doctor and get connected to communities"
+            ]),
+            
+            html.Label([
+                "",
+                 html.A(
+                     'Free Medicare Nutrition Therapy Services : ', 
+                     href='https://www.medicare.gov/coverage/nutrition-therapy-services',
+                     target='_blank'), 
+                 "", " Following a healthy diet typically requires working with a dietician which poor people can't afford. \
+                     Medicare Part B covers medical nutrition therapy services for people with diabetes or kidney disease, \
+                         or people who have had a kidney transplant in the last 36 months (doctor referal needed)."
+            ]),
+                
+            html.Label([
+                "",
+                 html.A(
+                     'Self-Perceived Barriers and Facilitators to DASH Adherence Among Black Americans With Chronic Kidney Disease : ', 
+                     href='https://www.sciencedirect.com/science/article/pii/S1051227622000887',
+                     target='_blank'), 
+                 "", " This information is more for researchers than patients. It's a great starting point to understand \
+                     some of the disparities in CKD across US various demographics"
+            ]),
+            html.Label([
+                "",
+                 html.A(
+                     'International Food Information Council : ', 
+                     href='https://ific.org/media-information/press-releases/2021-food-health-survey/',
+                     target='_blank'), 
+                 "", " Kidney Health and Healthy Food  go together. Go here to get details on \
+                     how Americans food and food purchasing decisions connect to physical health and overall wellbeing"
+            ]),
+            html.Label([
+                "",
+                 html.A(
+                     'Black Health Matters : ', 
+                     href='https://blackhealthmatters.com/events/',
+                     target='_blank'), 
+                 "", " This could be a nice point of support for African American patients. \
+                     They provide various events on health outcomes such as diabetes, focussed on black communities"
+            ]),
+            html.Label([
+                "",
+                 html.A(
+                     'Economic Research Service, Food & Nutrition Assitance : ', 
+                     href='https://www.ers.usda.gov/topics/food-nutrition-assistance/',
+                     target='_blank'), 
+                 "", " This is great for researchers and data scientists who want to understand how food affects health. \
+                     You can also find datasets on Supplemental Nutrition Assistance Program (SNAP) by state"
+            ]),
+            html.Label([
+                "",
+                 html.A(
+                     'My Plate : ', 
+                     href='https://www.myplate.gov',
+                     target='_blank'), 
+                 "", " Learn how to make healthy recipies. There is a free mobile app which can be downloaded on mobile   \
+                     devices to track daily goals and get intructions on how to make various foods"
+            ]),
+            html.Label([
+                "",
+                 html.A(
+                     'Meals on Wheels America : ', 
+                     href='https://www.mealsonwheelsamerica.org/find-meals',
+                     target='_blank'), 
+                 "", " Find Meels on Wheels provider near you. This can be useful for people leaving in food deserts\
+                     far away from supermarkets. You can enter your zip code to see Meels on Wheels providers near you."
+            ]),
+                
+            html.Label([
+                "",
+                 html.A(
+                     'Commodity Supplemental Food Program : ', 
+                     href='https://www.fns.usda.gov/csfp/commodity-supplemental-food-program',
+                     target='_blank'), 
+                 "", " The Commodity Supplemental Food Program (CSFP) works to improve the health of low-income persons \
+                     at least 60 years of age by supplementing their diets with nutritious USDA Foods. \
+                    USDA distributes both food and administrative funds to participating states and Indian Tribal Organizations \
+                        to operate CSFP"
+            ]),
+            html.Label([
+                "",
+                 html.A(
+                     'SNAP Retailer Locator : ', 
+                     href='https://www.fns.usda.gov/snap/retailer-locator',
+                     target='_blank'), 
+                 "", " This dataset provides information on SNAP authorized retailers, including their location, \
+                     store type, and SNAP sales data"
+            ]),
+                
+            html.Label([
+                "",
+                 html.A(
+                     'FoodAPS National Household Food Acquisition and Purchase Survey : ', 
+                     href='https://www.ers.usda.gov/data-products/foodaps-national-household-food-acquisition-and-purchase-survey/',
+                     target='_blank'), 
+                 "", " Really cool! Collects unique and comprehensive data about household food purchases and acquisitions. \
+                     The survey includes nationally representative data from 4,826 households, \
+                         including Supplemental Nutrition Assistance Program (SNAP) households, \
+                             low-income households not participating in SNAP, and higher income households."
+            ]),
+                
+            html.Label([
+                "",
+                 html.A(
+                     'Senior Food Program : ', 
+                     href='https://www.feedingamerica.org/our-work/hunger-relief-programs/senior-programs',
+                     target='_blank'), 
+                 "", " Free senior food programs are available across the country. Learn what food programs exist \
+                     and where to find them in your community"
+            ]),
+            
+            html.Label([
+                "",
+                 html.A(
+                     'Evidence-based analysis: ', 
+                     href='https://www.fns.usda.gov/research-analysis',
+                     target='_blank'), 
+                 "", " The Office of Policy Support (OPS) leads the development and execution of FNS's study and evaluation agenda. \
+                     This web page is intended to provide access to OPS's work to program partners, other stakeholders, \
+                         and the general public."
+            ]),
+            
+            html.Label([
+                "",
+                 html.A(
+                     'Foods Typically Purchased by Supplemental Nutrition Assistance Program (SNAP) Households: ', 
+                     href='https://www.fns.usda.gov/snap/foods-typically-purchased-supplemental-nutrition-assistance-program-snap-households',
+                     target='_blank'), 
+                 "", " This study uses calendar year 2011 point-of-sale transaction data from a leading grocery retailer \
+                     to examine the food choices of SNAP and non-SNAP households . On average, each month's transaction \
+                         data contained over 1 billion records of food items bought by 26.5 million households in 127 million \
+                             unique transactions."
+            ]),
             
         ]
-    )
-
-
+    )        
+        
 # Build App
 app = Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
 
@@ -495,15 +774,35 @@ app.layout = html.Div([
                 
             ], align='center'), 
             html.Br(),
+            #Another row
             dbc.Row([
                 dbc.Col([
                     drawCorr1(object_id='corr1-id') 
-                ], width=6),
+                ], width=5),
+                
+                dbc.Col([
+                    html.Label('Select Variable'),
+                    dcc.Dropdown(
+                        options=['Low Income', 'SNAP', 'Senior'], 
+                        value='SNAP', 
+                        id='var-dropdown'
+                    ),
+                ], width=1),
                 
                 dbc.Col([
                     drawCorr2(object_id='corr2-id') 
                 ], width=6),
             ], align='center'),
+            
+            html.Br(),
+            #Another row
+            dbc.Row([
+                dbc.Col([
+                    section_resources(),
+                ], width=12),
+                
+            ], align='center'), 
+            html.Br(),
             
         ]), color = 'dark'
     )
@@ -648,6 +947,30 @@ def update_metric_map(metric,perc_senior,perc_lowi,perc_snap,fips_id,metric_rang
     
     return fig
 
+
+@app.callback(
+    Output('corr1-id', 'figure'),
+    [
+     Input('var-dropdown', 'value'),
+    ]
+)
+def update_corr1_graph(variable):
+    
+    
+    data = corr_df1[corr_df1['Population Group']==variable]
+    fig = px.bar(
+        data, 
+        x="Distance from supermarket", 
+        y="Correlation Coeff with CKD",
+        color=['blue' if x>0 else 'red' for x in data['Correlation Coeff with CKD']],
+        barmode='group',
+        #width=800, height=400,
+        hover_data = {'p_value':True, },
+        title='Correlation between CKD prevalence and access to healthy food'
+    ).update(layout_showlegend=False)
+    
+    return fig             
+   
 
 # Run flask app
 if __name__ == "__main__": 
