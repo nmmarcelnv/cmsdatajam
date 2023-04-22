@@ -245,7 +245,7 @@ def drawSNAPSpends(object_id):
                     figure = px.bar(
                         foods, 
                         x="Food Category", 
-                        y="TPercentage of Total Spend",
+                        y="Percentage of Total Spend",
                         barmode='group',
                         title='Percentage of Total Expenditures by Food Category for SNAP households'
                     ).update(layout_showlegend=False)
@@ -366,8 +366,8 @@ def section_correlation():
             ]),
             html.H5([
                 html.Span("Highlight: ", style={"color": "white", "font-weight": "bold"}),
-                " Though SNAP benefits might help with hunger, people \
-                are using their SNAP money to purchase items that aggravage the risk of developing CKD",
+                " Though SNAP benefits might help with hunger, food items commonly purchased\
+                with SNAP benefits are not particularly helpful for Kidney Health",
             ]),
             html.Hr(),
         
