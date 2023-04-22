@@ -39,6 +39,7 @@ diet_df = pd.read_excel(
 ckd_inc_df = ckd_inc_df[ckd_inc_df['DASH Score']!=1]
 diet_df['Percentage of population'] = diet_df['Percentage of population'] * 100
 
+#source: https://www.fns.usda.gov/snap/foods-typically-purchased-supplemental-nutrition-assistance-program-snap-households
 usecols=['Food Category','Percentage of Total Spend']
 foods = pd.read_excel(
     'https://github.com/nmmarcelnv/cmsdatajam/blob/main/reports/charts.xlsx?raw=true',
@@ -227,6 +228,26 @@ def drawCorr2(object_id):
                         barmode='group',
                         hover_data = {'p_value':True, },
                         title='Correlation between CKD prevalence and various social determinants'
+                    ).update(layout_showlegend=False)
+                    
+                ) 
+            ])
+        ),  
+    ])
+
+def drawSNAPSpends(object_id):
+    
+    return  html.Div([
+        dbc.Card(
+            dbc.CardBody([
+                dcc.Graph(
+                    id=object_id,
+                    figure = px.bar(
+                        foods, 
+                        x="Food Category", 
+                        y="TPercentage of Total Spend",
+                        barmode='group',
+                        title='Percentage of Total Expenditures by Food Category for SNAP households'
                     ).update(layout_showlegend=False)
                     
                 ) 
@@ -793,6 +814,14 @@ app.layout = html.Div([
                     drawCorr2(object_id='corr2-id') 
                 ], width=6),
             ], align='center'),
+            
+            #Another row
+            dbc.Row([
+                dbc.Col([
+                    drawSNAPSpends(object_id='snap-spend-id'),
+                ], width=12),
+                
+            ], align='center'), 
             
             html.Br(),
             #Another row
