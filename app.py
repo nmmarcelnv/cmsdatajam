@@ -273,21 +273,14 @@ def getIntro():
     return html.Div(
         className="header",
         children=[
-            html.H1("Healthy Food for Healthy Kidney: A Practical Apporach to Reduce Chronic Kidney Disease (CKD)"),
+            html.H1("Healthy Food for Healthy Kidney: A strategy customized to the unique needs of each community"),
             html.H5([
-                "Contributors: ",
-                html.Span("Marcel Nguemaha", style={"color": "white", "font-weight": "bold"}),
+                html.Span(" Marcel Nguemaha", style={"color": "white", "font-weight": "bold",}),
                 " and ",
                 html.Span("Priyanka Garde", style={"color": "white", "font-weight": "bold"}),
                 " (National Government Services)"
             ]),
-            html.Hr(),
-            html.P(
-        "According to Center of Disease Control (CDC) reports, more than 15% of US adults \
-            are estimated to have CKD and 9 in 10 adults with CKD are unaware of their condition. \
-                Also, African American and other minority population, mostly living in under-served c\
-                    ommunities are more that 4 times as likely as Whites to develop Kidney Failure."
-            ),
+            
             
         ]
     )
@@ -648,9 +641,21 @@ app.layout = html.Div([
             dbc.Row([
                 dbc.Col([
                     getIntro(),
-                ], width=12),
+                ], width=10),
+                
+                dbc.Col([
+                    html.Img(src='assets/ngslogo.png'),
+                ], width=2),
                 
             ], align='center'), 
+            
+            html.Hr(),
+            html.P(
+                "According to Center of Disease Control (CDC) reports, more than 15% of US adults \
+                    are estimated to have CKD and 9 in 10 adults with CKD are unaware of their condition. \
+                Also, African American and other minority population, mostly living in under-served c\
+                    ommunities are more that 4 times as likely as Whites to develop Kidney Failure."
+            ),
             
             #A row
             html.Br(),
